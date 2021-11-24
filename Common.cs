@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Excel = Microsoft.Office.Interop.Excel;
+using Autodesk.Revit.DB;
 
 namespace TepscoImportExport
 {
@@ -43,7 +44,7 @@ namespace TepscoImportExport
         /// <param name="path"></param>
         /// <returns></returns>
         /// ================================================================================
-        public bool WriteNewExcel(string path, System.Windows.Forms.ProgressBar progressBar, List<List<string>> lstTab, List<List<string>> lstLink, bool check)
+        public static bool WriteNewExcel(string path, System.Windows.Forms.ProgressBar progressBar, List<List<string>> lstTab, List<List<string>> lstLink, bool check)
         {
             try
             {
@@ -200,7 +201,7 @@ namespace TepscoImportExport
         /// <param name="col"></param>
         /// <returns></returns>
         /// ================================================================================
-        private object GetValue(object[,] values, int row, int col)
+        private static object GetValue(object[,] values, int row, int col)
         {
             int length_row = values.GetLength(0);
             int length_col = values.GetLength(1);
@@ -227,9 +228,50 @@ namespace TepscoImportExport
         /// <param name="path"></param>
         /// <returns></returns>
         /// ================================================================================
-        public bool ReadFile(string path)
+        public static bool ReadFile(string path)
         {
             return false;
+        }
+
+        public static List<string> ListCategories(Autodesk.Revit.UI.UIDocument uiDoc, Autodesk.Revit.DB.Document doc)
+        {
+            List<string> retList = new List<string>();
+
+            try
+            {
+                Autodesk.Revit.DB.FilteredElementCollector fsCollector = new FilteredElementCollector(doc);
+
+                fsCollector.OfClass(typeof(Autodesk.Revit.DB.FamilySymbol));
+
+                List<FamilySymbol> lstFss = fsCollector.Cast<FamilySymbol>().ToList();
+
+                Autodesk.Revit.DB.CategorySet fsCategories = uiDoc.Application.Application.Create.NewCategorySet();
+
+                foreach (Autodesk.Revit.DB.FamilySymbol fss in lstFss)
+                {
+                    Autodesk.Revit.DB.Category fsCatLoop = fss.Category;
+
+                    if (fsCategories.Contains(fsCatLoop))
+                        continue;
+
+                    if (fsCatLoop.CategoryType != Autodesk.Revit.DB.CategoryType.Model)
+                        continue;
+
+                    fsCategories.Insert(fsCatLoop);
+                }
+
+                foreach (Autodesk.Revit.DB.Category catLoop in fsCategories)
+                {
+                    retList.Add(catLoop.Name);
+                }
+
+                return retList;
+            }
+            catch (Exception ex)
+            {
+                string szMsg = ex.Message;
+                return retList;
+            }
         }
     }
 }
